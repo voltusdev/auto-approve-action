@@ -5861,11 +5861,15 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.approve = void 0;
 const core = __importStar(__nccwpck_require__(186));
 const github = __importStar(__nccwpck_require__(438));
 const request_error_1 = __nccwpck_require__(537);
+const docs_detector_1 = __importDefault(__nccwpck_require__(67));
 function approve(token, context, prNumber) {
     var _a;
     return __awaiter(this, void 0, void 0, function* () {
@@ -5878,15 +5882,30 @@ function approve(token, context, prNumber) {
             return;
         }
         const client = github.getOctokit(token);
-        core.info(`Creating approving review for pull request #${prNumber}`);
+        const { data } = yield client.pulls.get({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            pull_number: prNumber,
+            mediaType: {
+                format: "diff",
+            },
+        });
+        const diff = data;
+        core.info(`Evaluating pull request #${prNumber} for auto-approval...`);
         try {
-            yield client.pulls.createReview({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: prNumber,
-                event: "APPROVE",
-            });
-            core.info(`Approved pull request #${prNumber}`);
+            if (diff.length > 0 && docs_detector_1.default(diff)) {
+                core.info(`PR only modifies docs`);
+                yield client.pulls.createReview({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    pull_number: prNumber,
+                    event: "APPROVE",
+                });
+                core.info(`Approved pull request #${prNumber}`);
+            }
+            else {
+                core.info(`PR modifies more than just docs. Please get a human to look at it and approve it.`);
+            }
         }
         catch (error) {
             if (error instanceof request_error_1.RequestError) {
@@ -5922,6 +5941,61 @@ function approve(token, context, prNumber) {
     });
 }
 exports.approve = approve;
+
+
+/***/ }),
+
+/***/ 67:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const core = __importStar(__nccwpck_require__(186));
+function onlyModifiesDocs(diff) {
+    const diffLines = diff.split("\n");
+    /* this plays by the following rules to get all the changed files from the diff string:
+    - /dev/null excluded
+    - check for lines starting with --- or +++
+    - split at the first space and take the part of the line post-split
+    - remove the leading "a/" or "b/" chars
+    - deduplicate with the call to set
+     */
+    const changedFilePaths = [
+        ...new Set(diffLines
+            .filter((line) => !line.includes("/dev/null") &&
+            (line.startsWith("---") || line.startsWith("+++")))
+            .map((line) => line.split(" ")[1].slice(2))),
+    ];
+    core.info(`Detected ${changedFilePaths.length} files changed:`);
+    core.info(JSON.stringify(changedFilePaths));
+    return changedFilePaths.every((path) => path.includes("/docs/") ||
+        path.includes("README.md") ||
+        path.includes("README.rst") ||
+        path.includes(".github/ISSUE_TEMPLATE") ||
+        path.includes(".github/PULL_REQUEST_TEMPLATE") ||
+        path.includes("wiki/"));
+}
+exports.default = onlyModifiesDocs;
 
 
 /***/ }),
@@ -5965,6 +6039,7 @@ const github = __importStar(__nccwpck_require__(438));
 const approve_1 = __nccwpck_require__(609);
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
+        core.info(`If you're wondering where this comes from, it's the github action defined here: https://github.com/voltusdev/auto-approve-action`);
         const token = core.getInput("github-token", { required: true });
         const prNumber = parseInt(core.getInput("pull-request-number"), 10);
         if (!Number.isNaN(prNumber)) {

@@ -2,6 +2,7 @@ import * as core from "@actions/core";
 import * as github from "@actions/github";
 import { RequestError } from "@octokit/request-error";
 import { Context } from "@actions/github/lib/context";
+import onlyModifiesDocs from "./docs-detector";
 
 export async function approve(
   token: string,
@@ -22,15 +23,32 @@ export async function approve(
 
   const client = github.getOctokit(token);
 
-  core.info(`Creating approving review for pull request #${prNumber}`);
+  const { data }: { data: unknown } = await client.pulls.get({
+    owner: context.repo.owner,
+    repo: context.repo.repo,
+    pull_number: prNumber,
+    mediaType: {
+      format: "diff",
+    },
+  });
+  const diff = data as string;
+
+  core.info(`Evaluating pull request #${prNumber} for auto-approval...`);
   try {
-    await client.pulls.createReview({
-      owner: context.repo.owner,
-      repo: context.repo.repo,
-      pull_number: prNumber,
-      event: "APPROVE",
-    });
-    core.info(`Approved pull request #${prNumber}`);
+    if (diff.length > 0 && onlyModifiesDocs(diff)) {
+      core.info(`PR only modifies docs`);
+      await client.pulls.createReview({
+        owner: context.repo.owner,
+        repo: context.repo.repo,
+        pull_number: prNumber,
+        event: "APPROVE",
+      });
+      core.info(`Approved pull request #${prNumber}`);
+    } else {
+      core.info(
+        `PR modifies more than just docs. Please get a human to look at it and approve it.`
+      );
+    }
   } catch (error) {
     if (error instanceof RequestError) {
       switch (error.status) {

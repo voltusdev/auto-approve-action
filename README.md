@@ -1,10 +1,14 @@
-# Auto Approve GitHub Action
+# WARNING VOLTANS: THIS IS A PUBLIC FORK. DO NOT PUT SENSITIVE INFO IN THIS REPO.
 
-**Name:** `hmarr/auto-approve-action`
+## Auto Approve GitHub Action for Documentation
 
-Automatically approve GitHub pull requests. The `GITHUB_TOKEN` secret must be provided as the `github-token` input for the action to work.
+**Name:** `voltusdev/auto-approve-action`
 
-**Important:** use v2.0.0 or later, as v1 was designed for the initial GitHub Actions beta, and no longer works.
+Automatically approve GitHub pull requests if the only thing modified is documentation. The `GITHUB_TOKEN` secret must be provided as the `github-token` input for the action to work.
+
+This is a modified version of [hmarr/auto-approve-action](https://github.com/hmarr/auto-approve-action), forked for Voltus purposes.
+
+**NOTE: Rest is same README as original repo**
 
 ## Usage instructions
 
