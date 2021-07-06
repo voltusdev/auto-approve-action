@@ -15,8 +15,11 @@ export default function onlyModifiesDocs(diff: string): boolean {
       diffLines
         .filter(
           (line) =>
+            line.trim() !== "" &&
             !line.includes("/dev/null") &&
-            (line.startsWith("---") || line.startsWith("+++"))
+            (line.startsWith("---") || line.startsWith("+++")) &&
+            !line.startsWith("----") &&
+            !line.startsWith("++++")
         )
         .map((line) => line.split(" ")[1].slice(2))
     ),

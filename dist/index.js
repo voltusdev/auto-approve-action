@@ -5982,8 +5982,11 @@ function onlyModifiesDocs(diff) {
      */
     const changedFilePaths = [
         ...new Set(diffLines
-            .filter((line) => !line.includes("/dev/null") &&
-            (line.startsWith("---") || line.startsWith("+++")))
+            .filter((line) => line.trim() !== "" &&
+            !line.includes("/dev/null") &&
+            (line.startsWith("---") || line.startsWith("+++")) &&
+            !line.startsWith("----") &&
+            !line.startsWith("++++"))
             .map((line) => line.split(" ")[1].slice(2))),
     ];
     core.info(`Detected ${changedFilePaths.length} files changed:`);
