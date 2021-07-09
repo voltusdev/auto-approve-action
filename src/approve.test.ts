@@ -35,6 +35,20 @@ test("only approves when a diff changes /docs directory files and/or READMEs", a
   );
 });
 
+test("does not approve when PR is just renames/moves", async () => {
+  const renameDiff =
+    "diff --git a/buildtools/build_docs.sh b/buildtoolies/build_docs.sh\nsimilarity index 100%\nrename from buildtools/build_docs.sh\nrename to buildtoolies/build_docs.sh";
+  nock("https://api.github.com")
+    .get("/repos/hmarr/test/pulls/101")
+    .reply(200, renameDiff);
+
+  await approve("gh-tok", ghContext());
+
+  expect(core.info).not.toHaveBeenCalledWith(
+    expect.stringContaining("Approved pull request #101")
+  );
+});
+
 test("when a review is successfully created", async () => {
   nock("https://api.github.com")
     .post("/repos/hmarr/test/pulls/101/reviews")

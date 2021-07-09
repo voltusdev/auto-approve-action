@@ -25,10 +25,27 @@ export default function onlyModifiesDocs(diff: string): boolean {
     ),
   ];
 
+  /* this includes renamed filepaths in the auto-approval consideration */
+  const renamedFilePaths = [
+    ...new Set(
+      diffLines
+        .filter(
+          (line) =>
+            line.trim() !== "" &&
+            !line.includes("/dev/null") &&
+            (line.startsWith("rename from ") || line.startsWith("rename to "))
+        )
+        .map((line) => line.split(" ")[2])
+    ),
+  ];
+
   core.info(`Detected ${changedFilePaths.length} files changed:`);
   core.info(JSON.stringify(changedFilePaths));
 
-  return changedFilePaths.every(
+  core.info(`Detected ${renamedFilePaths.length} files renamed:`);
+  core.info(JSON.stringify(renamedFilePaths));
+
+  return [...changedFilePaths, ...renamedFilePaths].every(
     (path) =>
       path.includes("/docs/") ||
       path.includes("README.md") ||
