@@ -48,6 +48,33 @@ export async function approve(
       core.info(
         `PR modifies more than just docs. Please get a human to look at it and approve it.`
       );
+      // dismiss old approvals
+      const reviews = await client.pulls.listReviews({
+        owner: context.repo.owner,
+        repo: context.repo.repo,
+        pull_number: prNumber,
+      });
+
+      const reviewsToDismiss = reviews.data.filter((review) => {
+        return (
+          review.user?.login === "github-actions[bot]" &&
+          review.state === "APPROVED"
+        );
+      });
+
+      await Promise.all(
+        reviewsToDismiss.map(async (review) => {
+          if (prNumber) {
+            await client.pulls.dismissReview({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+              review_id: review.id,
+              message: "More than docs changed. Dismissed prior PR approval.",
+            });
+          }
+        })
+      );
     }
   } catch (error) {
     if (error instanceof RequestError) {

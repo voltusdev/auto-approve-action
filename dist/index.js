@@ -5905,6 +5905,28 @@ function approve(token, context, prNumber) {
             }
             else {
                 core.info(`PR modifies more than just docs. Please get a human to look at it and approve it.`);
+                // dismiss old approvals
+                const reviews = yield client.pulls.listReviews({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    pull_number: prNumber,
+                });
+                const reviewsToDismiss = reviews.data.filter((review) => {
+                    var _a;
+                    return (((_a = review.user) === null || _a === void 0 ? void 0 : _a.login) === "github-actions[bot]" &&
+                        review.state === "APPROVED");
+                });
+                yield Promise.all(reviewsToDismiss.map((review) => __awaiter(this, void 0, void 0, function* () {
+                    if (prNumber) {
+                        yield client.pulls.dismissReview({
+                            owner: context.repo.owner,
+                            repo: context.repo.repo,
+                            pull_number: prNumber,
+                            review_id: review.id,
+                            message: "More than docs changed. Dismissed prior PR approval.",
+                        });
+                    }
+                })));
             }
         }
         catch (error) {
