@@ -3,6 +3,7 @@ import * as github from "@actions/github";
 import { RequestError } from "@octokit/request-error";
 import { Context } from "@actions/github/lib/context";
 import onlyModifiesDocs from "./docs-detector";
+import parse from "./parse-diff";
 
 export async function approve(
   token: string,
@@ -32,10 +33,11 @@ export async function approve(
     },
   });
   const diff = data as string;
+  const files = parse(diff);
 
   core.info(`Evaluating pull request #${prNumber} for auto-approval...`);
   try {
-    if (diff.length > 0 && onlyModifiesDocs(diff)) {
+    if (diff.length > 0 && onlyModifiesDocs(files)) {
       core.info(`PR only modifies docs`);
       await client.pulls.createReview({
         owner: context.repo.owner,

@@ -1,51 +1,50 @@
 import * as core from "@actions/core";
+import parse from "./parse-diff";
 
-export default function onlyModifiesDocs(diff: string): boolean {
-  const diffLines = diff.split("\n");
+export default function onlyModifiesDocs(files: parse.File[]): boolean {
+  const changedFiles = files.filter(
+    (file) =>
+      !file.new &&
+      !file.deleted &&
+      file.from === file.to &&
+      (file.additions > 0 || file.deletions > 0)
+  );
+  const renamedFiles = files.filter(
+    (file) =>
+      !file.new &&
+      !file.deleted &&
+      file.from !== file.to &&
+      file.additions === 0 &&
+      file.deletions === 0
+  );
+  const deletedFiles = files.filter((file) => !!file.deleted);
+  const addedFiles = files.filter((file) => !!file.new);
 
-  /* this plays by the following rules to get all the changed files from the diff string:
-  - /dev/null excluded
-  - check for lines starting with --- or +++
-  - split at the first space and take the part of the line post-split
-  - remove the leading "a/" or "b/" chars
-  - deduplicate with the call to set
-   */
-  const changedFilePaths = [
-    ...new Set(
-      diffLines
-        .filter(
-          (line) =>
-            line.trim() !== "" &&
-            !line.includes("/dev/null") &&
-            (line.startsWith("---") || line.startsWith("+++")) &&
-            !line.startsWith("----") &&
-            !line.startsWith("++++")
-        )
-        .map((line) => line.split(" ")[1].slice(2))
-    ),
+  core.info(`Detected ${changedFiles.length} files changed.`);
+  core.info(`Detected ${renamedFiles.length} files renamed.`);
+  core.info(`Detected ${deletedFiles.length} files deleted.`);
+  core.info(`Detected ${addedFiles.length} files added.`);
+
+  const allFilePaths = [
+    // changed could be to or from
+    ...changedFiles.map((f) => f.to),
+    // renamed, consider both before and after
+    ...renamedFiles.map((f) => f.to),
+    ...renamedFiles.map((f) => f.from),
+    // deleted only has from
+    ...deletedFiles.map((f) => f.from),
+    // added only has to
+    ...addedFiles.map((f) => f.to),
   ];
 
-  /* this includes renamed filepaths in the auto-approval consideration */
-  const renamedFilePaths = [
-    ...new Set(
-      diffLines
-        .filter(
-          (line) =>
-            line.trim() !== "" &&
-            !line.includes("/dev/null") &&
-            (line.startsWith("rename from ") || line.startsWith("rename to "))
-        )
-        .map((line) => line.split(" ")[2])
-    ),
-  ];
+  core.info(`All ${changedFiles.length} changed filepaths:`);
+  core.info(JSON.stringify(allFilePaths));
 
-  core.info(`Detected ${changedFilePaths.length} files changed:`);
-  core.info(JSON.stringify(changedFilePaths));
-
-  core.info(`Detected ${renamedFilePaths.length} files renamed:`);
-  core.info(JSON.stringify(renamedFilePaths));
-
-  return [...changedFilePaths, ...renamedFilePaths].every(
+  // don't think undefined should ever occur but will watch for it in practice...
+  const stringFilePaths = allFilePaths.filter(
+    (path) => path !== undefined
+  ) as string[];
+  return stringFilePaths.every(
     (path) =>
       path.includes("/docs/") ||
       path.includes("README.md") ||
