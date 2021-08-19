@@ -5881,7 +5881,7 @@ const github = __importStar(__nccwpck_require__(438));
 const request_error_1 = __nccwpck_require__(537);
 const docs_detector_1 = __importDefault(__nccwpck_require__(67));
 const parse_diff_1 = __importDefault(__nccwpck_require__(959));
-function approve(token, context, prNumber) {
+function approve(token, context, sleepBeforeApproveSeconds, prNumber) {
     var _a;
     return __awaiter(this, void 0, void 0, function* () {
         if (!prNumber) {
@@ -5906,7 +5906,8 @@ function approve(token, context, prNumber) {
         core.info(`Evaluating pull request #${prNumber} for auto-approval...`);
         try {
             if (diff.length > 0 && docs_detector_1.default(files)) {
-                core.info(`PR only modifies docs`);
+                core.info(`PR only modifies docs - sleeping ${sleepBeforeApproveSeconds}s and then approving this PR.`);
+                yield new Promise((r) => setTimeout(r, sleepBeforeApproveSeconds * 1000));
                 yield client.pulls.createReview({
                     owner: context.repo.owner,
                     repo: context.repo.repo,
@@ -6085,16 +6086,19 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(186));
 const github = __importStar(__nccwpck_require__(438));
 const approve_1 = __nccwpck_require__(609);
+// cannot be over 6hrs or github actions will fail the job
+// https://docs.github.com/en/actions/reference/usage-limits-billing-and-administration
+const SLEEP_BEFORE_AUTO_APPROVING_SECONDS = 21500;
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         core.info(`If you're wondering where this comes from, it's the github action defined here: https://github.com/voltusdev/auto-approve-action`);
         const token = core.getInput("github-token", { required: true });
         const prNumber = parseInt(core.getInput("pull-request-number"), 10);
         if (!Number.isNaN(prNumber)) {
-            yield approve_1.approve(token, github.context, prNumber);
+            yield approve_1.approve(token, github.context, SLEEP_BEFORE_AUTO_APPROVING_SECONDS, prNumber);
         }
         else {
-            yield approve_1.approve(token, github.context);
+            yield approve_1.approve(token, github.context, SLEEP_BEFORE_AUTO_APPROVING_SECONDS);
         }
     });
 }

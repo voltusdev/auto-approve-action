@@ -145,7 +145,7 @@ test("only approves when a diff changes /docs directory files and/or READMEs", a
     .get("/repos/hmarr/test/pulls/101")
     .reply(200, docOnlyDiffs);
 
-  await approve("gh-tok", ghContext());
+  await approve("gh-tok", ghContext(), 0);
 
   expect(core.info).not.toHaveBeenCalledWith(
     expect.stringContaining("Approved pull request #101")
@@ -157,7 +157,7 @@ test("does not approve when PR has no content", async () => {
     .get("/repos/hmarr/test/pulls/101")
     .reply(200, []);
 
-  await approve("gh-tok", ghContext());
+  await approve("gh-tok", ghContext(), 0);
 
   expect(core.info).not.toHaveBeenCalledWith(
     expect.stringContaining("Approved pull request #101")
@@ -169,7 +169,7 @@ test("does not approve when PR includes non-doc changed", async () => {
     .get("/repos/hmarr/test/pulls/101")
     .reply(200, [...docOnlyDiffs, nonDocChanged]);
 
-  await approve("gh-tok", ghContext());
+  await approve("gh-tok", ghContext(), 0);
 
   expect(core.info).not.toHaveBeenCalledWith(
     expect.stringContaining("Approved pull request #101")
@@ -181,7 +181,7 @@ test("does not approve when PR includes non-doc renamed", async () => {
     .get("/repos/hmarr/test/pulls/101")
     .reply(200, [...docOnlyDiffs, nonDocRenamed]);
 
-  await approve("gh-tok", ghContext());
+  await approve("gh-tok", ghContext(), 0);
 
   expect(core.info).not.toHaveBeenCalledWith(
     expect.stringContaining("Approved pull request #101")
@@ -193,7 +193,7 @@ test("does not approve when PR includes non-doc deleted", async () => {
     .get("/repos/hmarr/test/pulls/101")
     .reply(200, [...docOnlyDiffs, nonDocDeleted]);
 
-  await approve("gh-tok", ghContext());
+  await approve("gh-tok", ghContext(), 0);
 
   expect(core.info).not.toHaveBeenCalledWith(
     expect.stringContaining("Approved pull request #101")
@@ -205,7 +205,7 @@ test("does not approve when PR includes non-doc added", async () => {
     .get("/repos/hmarr/test/pulls/101")
     .reply(200, [...docOnlyDiffs, nonDocAdded]);
 
-  await approve("gh-tok", ghContext());
+  await approve("gh-tok", ghContext(), 0);
 
   expect(core.info).not.toHaveBeenCalledWith(
     expect.stringContaining("Approved pull request #101")
@@ -222,7 +222,7 @@ test("when a review is successfully created", async () => {
     .get("/repos/hmarr/test/pulls/101")
     .reply(200, docOnlyDiffs);
 
-  await approve("gh-tok", ghContext());
+  await approve("gh-tok", ghContext(), 0);
 
   expect(core.info).toHaveBeenCalledWith(
     expect.stringContaining("Approved pull request #101")
@@ -239,7 +239,7 @@ test("when a review is successfully created using pull-request-number", async ()
     .get("/repos/hmarr/test/pulls/101")
     .reply(200, docOnlyDiffs);
 
-  await approve("gh-tok", new Context(), 101);
+  await approve("gh-tok", new Context(), 0, 101);
 
   expect(core.info).toHaveBeenCalledWith(
     expect.stringContaining("Approved pull request #101")
@@ -247,7 +247,7 @@ test("when a review is successfully created using pull-request-number", async ()
 });
 
 test("without a pull request", async () => {
-  await approve("gh-tok", new Context());
+  await approve("gh-tok", new Context(), 0);
 
   expect(core.setFailed).toHaveBeenCalledWith(
     expect.stringContaining("Make sure you're triggering this")
@@ -264,7 +264,7 @@ test("when the token is invalid", async () => {
     .get("/repos/hmarr/test/pulls/101")
     .reply(200, docOnlyDiffs);
 
-  await approve("gh-tok", ghContext());
+  await approve("gh-tok", ghContext(), 0);
 
   expect(core.setFailed).toHaveBeenCalledWith(
     expect.stringContaining("`github-token` input parameter")
@@ -281,7 +281,7 @@ test("when the token doesn't have write permissions", async () => {
     .get("/repos/hmarr/test/pulls/101")
     .reply(200, docOnlyDiffs);
 
-  await approve("gh-tok", ghContext());
+  await approve("gh-tok", ghContext(), 0);
 
   expect(core.setFailed).toHaveBeenCalledWith(
     expect.stringContaining("pull_request_target")
@@ -298,7 +298,7 @@ test("when a user tries to approve their own pull request", async () => {
     .get("/repos/hmarr/test/pulls/101")
     .reply(200, docOnlyDiffs);
 
-  await approve("gh-tok", ghContext());
+  await approve("gh-tok", ghContext(), 0);
 
   expect(core.setFailed).toHaveBeenCalledWith(
     expect.stringContaining("same user account")
@@ -315,7 +315,7 @@ test("when the token doesn't have access to the repository", async () => {
     .get("/repos/hmarr/test/pulls/101")
     .reply(200, docOnlyDiffs);
 
-  await approve("gh-tok", ghContext());
+  await approve("gh-tok", ghContext(), 0);
 
   expect(core.setFailed).toHaveBeenCalledWith(
     expect.stringContaining("doesn't have access")

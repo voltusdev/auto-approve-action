@@ -8,6 +8,7 @@ import parse from "./parse-diff";
 export async function approve(
   token: string,
   context: Context,
+  sleepBeforeApproveSeconds: number,
   prNumber?: number
 ) {
   if (!prNumber) {
@@ -38,7 +39,10 @@ export async function approve(
   core.info(`Evaluating pull request #${prNumber} for auto-approval...`);
   try {
     if (diff.length > 0 && onlyModifiesDocs(files)) {
-      core.info(`PR only modifies docs`);
+      core.info(
+        `PR only modifies docs - sleeping ${sleepBeforeApproveSeconds}s and then approving this PR.`
+      );
+      await new Promise((r) => setTimeout(r, sleepBeforeApproveSeconds * 1000));
       await client.pulls.createReview({
         owner: context.repo.owner,
         repo: context.repo.repo,
