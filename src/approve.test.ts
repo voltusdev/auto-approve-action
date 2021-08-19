@@ -140,10 +140,44 @@ const docOnlyDiffs = [
   wikiChanged,
 ];
 
+const noPriorReviews = [];
+
+const priorReviews = [
+  {
+    user: { login: "github-actions[bot]" },
+    state: "APPROVED",
+  },
+];
+
+test("skips approval if already approved by bot", async () => {
+  nock("https://api.github.com")
+    .get("/repos/hmarr/test/pulls/101")
+    .reply(200, docOnlyDiffs);
+
+  // mock the request for prior approved reviews
+  nock("https://api.github.com")
+    .get("/repos/hmarr/test/pulls/101/reviews")
+    .reply(200, priorReviews);
+
+  await approve("gh-tok", ghContext(), 0);
+
+  expect(core.info).toHaveBeenCalledWith(
+    expect.stringContaining("PR already auto-approved.")
+  );
+  expect(core.info).not.toHaveBeenCalledWith(
+    expect.stringContaining("Approved pull request #101")
+  );
+});
+
 test("only approves when a diff changes /docs directory files and/or READMEs", async () => {
   nock("https://api.github.com")
     .get("/repos/hmarr/test/pulls/101")
     .reply(200, docOnlyDiffs);
+
+  // mock the request for prior approved reviews
+  nock("https://api.github.com")
+    .get("/repos/hmarr/test/pulls/101/reviews")
+    .reply(200, noPriorReviews);
 
   await approve("gh-tok", ghContext(), 0);
 
@@ -157,6 +191,11 @@ test("does not approve when PR has no content", async () => {
     .get("/repos/hmarr/test/pulls/101")
     .reply(200, []);
 
+  // mock the request for prior approved reviews
+  nock("https://api.github.com")
+    .get("/repos/hmarr/test/pulls/101/reviews")
+    .reply(200, noPriorReviews);
+
   await approve("gh-tok", ghContext(), 0);
 
   expect(core.info).not.toHaveBeenCalledWith(
@@ -168,6 +207,11 @@ test("does not approve when PR includes non-doc changed", async () => {
   nock("https://api.github.com")
     .get("/repos/hmarr/test/pulls/101")
     .reply(200, [...docOnlyDiffs, nonDocChanged]);
+
+  // mock the request for prior approved reviews
+  nock("https://api.github.com")
+    .get("/repos/hmarr/test/pulls/101/reviews")
+    .reply(200, noPriorReviews);
 
   await approve("gh-tok", ghContext(), 0);
 
@@ -181,6 +225,11 @@ test("does not approve when PR includes non-doc renamed", async () => {
     .get("/repos/hmarr/test/pulls/101")
     .reply(200, [...docOnlyDiffs, nonDocRenamed]);
 
+  // mock the request for prior approved reviews
+  nock("https://api.github.com")
+    .get("/repos/hmarr/test/pulls/101/reviews")
+    .reply(200, noPriorReviews);
+
   await approve("gh-tok", ghContext(), 0);
 
   expect(core.info).not.toHaveBeenCalledWith(
@@ -193,6 +242,11 @@ test("does not approve when PR includes non-doc deleted", async () => {
     .get("/repos/hmarr/test/pulls/101")
     .reply(200, [...docOnlyDiffs, nonDocDeleted]);
 
+  // mock the request for prior approved reviews
+  nock("https://api.github.com")
+    .get("/repos/hmarr/test/pulls/101/reviews")
+    .reply(200, noPriorReviews);
+
   await approve("gh-tok", ghContext(), 0);
 
   expect(core.info).not.toHaveBeenCalledWith(
@@ -204,6 +258,11 @@ test("does not approve when PR includes non-doc added", async () => {
   nock("https://api.github.com")
     .get("/repos/hmarr/test/pulls/101")
     .reply(200, [...docOnlyDiffs, nonDocAdded]);
+
+  // mock the request for prior approved reviews
+  nock("https://api.github.com")
+    .get("/repos/hmarr/test/pulls/101/reviews")
+    .reply(200, noPriorReviews);
 
   await approve("gh-tok", ghContext(), 0);
 
@@ -222,6 +281,11 @@ test("when a review is successfully created", async () => {
     .get("/repos/hmarr/test/pulls/101")
     .reply(200, docOnlyDiffs);
 
+  // mock the request for prior approved reviews
+  nock("https://api.github.com")
+    .get("/repos/hmarr/test/pulls/101/reviews")
+    .reply(200, noPriorReviews);
+
   await approve("gh-tok", ghContext(), 0);
 
   expect(core.info).toHaveBeenCalledWith(
@@ -238,6 +302,11 @@ test("when a review is successfully created using pull-request-number", async ()
   nock("https://api.github.com")
     .get("/repos/hmarr/test/pulls/101")
     .reply(200, docOnlyDiffs);
+
+  // mock the request for prior approved reviews
+  nock("https://api.github.com")
+    .get("/repos/hmarr/test/pulls/101/reviews")
+    .reply(200, noPriorReviews);
 
   await approve("gh-tok", new Context(), 0, 101);
 
@@ -264,6 +333,11 @@ test("when the token is invalid", async () => {
     .get("/repos/hmarr/test/pulls/101")
     .reply(200, docOnlyDiffs);
 
+  // mock the request for prior approved reviews
+  nock("https://api.github.com")
+    .get("/repos/hmarr/test/pulls/101/reviews")
+    .reply(200, noPriorReviews);
+
   await approve("gh-tok", ghContext(), 0);
 
   expect(core.setFailed).toHaveBeenCalledWith(
@@ -280,6 +354,11 @@ test("when the token doesn't have write permissions", async () => {
   nock("https://api.github.com")
     .get("/repos/hmarr/test/pulls/101")
     .reply(200, docOnlyDiffs);
+
+  // mock the request for prior approved reviews
+  nock("https://api.github.com")
+    .get("/repos/hmarr/test/pulls/101/reviews")
+    .reply(200, noPriorReviews);
 
   await approve("gh-tok", ghContext(), 0);
 
@@ -298,6 +377,11 @@ test("when a user tries to approve their own pull request", async () => {
     .get("/repos/hmarr/test/pulls/101")
     .reply(200, docOnlyDiffs);
 
+  // mock the request for prior approved reviews
+  nock("https://api.github.com")
+    .get("/repos/hmarr/test/pulls/101/reviews")
+    .reply(200, noPriorReviews);
+
   await approve("gh-tok", ghContext(), 0);
 
   expect(core.setFailed).toHaveBeenCalledWith(
@@ -314,6 +398,11 @@ test("when the token doesn't have access to the repository", async () => {
   nock("https://api.github.com")
     .get("/repos/hmarr/test/pulls/101")
     .reply(200, docOnlyDiffs);
+
+  // mock the request for prior approved reviews
+  nock("https://api.github.com")
+    .get("/repos/hmarr/test/pulls/101/reviews")
+    .reply(200, noPriorReviews);
 
   await approve("gh-tok", ghContext(), 0);
 

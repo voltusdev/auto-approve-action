@@ -38,7 +38,22 @@ export async function approve(
 
   core.info(`Evaluating pull request #${prNumber} for auto-approval...`);
   try {
-    if (diff.length > 0 && onlyModifiesDocs(files)) {
+    const reviews = await client.pulls.listReviews({
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      pull_number: prNumber,
+    });
+
+    const priorAutoApprovedReviews = reviews.data.filter((review) => {
+      return (
+        review.user?.login === "github-actions[bot]" &&
+        review.state === "APPROVED"
+      );
+    });
+
+    if (priorAutoApprovedReviews.length > 0) {
+      core.info("PR already auto-approved.");
+    } else if (diff.length > 0 && onlyModifiesDocs(files)) {
       core.info(
         `PR only modifies docs - sleeping ${sleepBeforeApproveSeconds}s and then approving this PR.`
       );
@@ -55,21 +70,8 @@ export async function approve(
         `PR modifies more than just docs. Please get a human to look at it and approve it.`
       );
       // dismiss old approvals
-      const reviews = await client.pulls.listReviews({
-        owner: context.repo.owner,
-        repo: context.repo.repo,
-        pull_number: prNumber,
-      });
-
-      const reviewsToDismiss = reviews.data.filter((review) => {
-        return (
-          review.user?.login === "github-actions[bot]" &&
-          review.state === "APPROVED"
-        );
-      });
-
       await Promise.all(
-        reviewsToDismiss.map(async (review) => {
+        priorAutoApprovedReviews.map(async (review) => {
           if (prNumber) {
             await client.pulls.dismissReview({
               owner: context.repo.owner,

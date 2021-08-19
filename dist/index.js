@@ -5905,7 +5905,20 @@ function approve(token, context, sleepBeforeApproveSeconds, prNumber) {
         const files = parse_diff_1.default(diff);
         core.info(`Evaluating pull request #${prNumber} for auto-approval...`);
         try {
-            if (diff.length > 0 && docs_detector_1.default(files)) {
+            const reviews = yield client.pulls.listReviews({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber,
+            });
+            const priorAutoApprovedReviews = reviews.data.filter((review) => {
+                var _a;
+                return (((_a = review.user) === null || _a === void 0 ? void 0 : _a.login) === "github-actions[bot]" &&
+                    review.state === "APPROVED");
+            });
+            if (priorAutoApprovedReviews.length > 0) {
+                core.info("PR already auto-approved.");
+            }
+            else if (diff.length > 0 && docs_detector_1.default(files)) {
                 core.info(`PR only modifies docs - sleeping ${sleepBeforeApproveSeconds}s and then approving this PR.`);
                 yield new Promise((r) => setTimeout(r, sleepBeforeApproveSeconds * 1000));
                 yield client.pulls.createReview({
@@ -5919,17 +5932,7 @@ function approve(token, context, sleepBeforeApproveSeconds, prNumber) {
             else {
                 core.info(`PR modifies more than just docs. Please get a human to look at it and approve it.`);
                 // dismiss old approvals
-                const reviews = yield client.pulls.listReviews({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    pull_number: prNumber,
-                });
-                const reviewsToDismiss = reviews.data.filter((review) => {
-                    var _a;
-                    return (((_a = review.user) === null || _a === void 0 ? void 0 : _a.login) === "github-actions[bot]" &&
-                        review.state === "APPROVED");
-                });
-                yield Promise.all(reviewsToDismiss.map((review) => __awaiter(this, void 0, void 0, function* () {
+                yield Promise.all(priorAutoApprovedReviews.map((review) => __awaiter(this, void 0, void 0, function* () {
                     if (prNumber) {
                         yield client.pulls.dismissReview({
                             owner: context.repo.owner,
