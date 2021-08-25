@@ -6091,7 +6091,8 @@ const github = __importStar(__nccwpck_require__(438));
 const approve_1 = __nccwpck_require__(609);
 // cannot be over 6hrs or github actions will fail the job
 // https://docs.github.com/en/actions/reference/usage-limits-billing-and-administration
-const SLEEP_BEFORE_AUTO_APPROVING_SECONDS = 21500;
+// edit: we realized we pay per hour here so set sleep to 0
+const SLEEP_BEFORE_AUTO_APPROVING_SECONDS = 0;
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         core.info(`If you're wondering where this comes from, it's the github action defined here: https://github.com/voltusdev/auto-approve-action`);

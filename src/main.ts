@@ -4,7 +4,8 @@ import { approve } from "./approve";
 
 // cannot be over 6hrs or github actions will fail the job
 // https://docs.github.com/en/actions/reference/usage-limits-billing-and-administration
-const SLEEP_BEFORE_AUTO_APPROVING_SECONDS = 21500;
+// edit: we realized we pay per hour here so set sleep to 0
+const SLEEP_BEFORE_AUTO_APPROVING_SECONDS = 0;
 
 async function run() {
   core.info(
