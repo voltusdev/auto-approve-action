@@ -6041,6 +6041,7 @@ function onlyModifiesDocs(files) {
     // don't think undefined should ever occur but will watch for it in practice...
     const stringFilePaths = allFilePaths.filter((path) => path !== undefined);
     return stringFilePaths.every((path) => path.includes("/docs/") ||
+        path.startsWith("docs/") ||
         path.includes("README.md") ||
         path.includes("README.rst") ||
         path.includes(".github/ISSUE_TEMPLATE") ||

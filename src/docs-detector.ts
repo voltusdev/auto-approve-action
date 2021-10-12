@@ -47,6 +47,7 @@ export default function onlyModifiesDocs(files: parse.File[]): boolean {
   return stringFilePaths.every(
     (path) =>
       path.includes("/docs/") ||
+      path.startsWith("docs/") ||
       path.includes("README.md") ||
       path.includes("README.rst") ||
       path.includes(".github/ISSUE_TEMPLATE") ||

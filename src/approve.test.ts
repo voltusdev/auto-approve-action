@@ -2,6 +2,8 @@ import * as core from "@actions/core";
 import { Context } from "@actions/github/lib/context";
 import nock from "nock";
 import { approve } from "./approve";
+import onlyModifiesDocs from "./docs-detector";
+import parse from "./parse-diff";
 
 beforeEach(() => {
   jest.restoreAllMocks();
@@ -92,6 +94,15 @@ const wikiChanged = {
   new: undefined,
 };
 
+const rootDocChanged = {
+  deletions: 0,
+  additions: 1,
+  from: "docs/code-docs/golden_path_docs/inter-service-tracing.rst",
+  to: "docs/code-docs/golden_path_docs/inter-service-tracing.rst",
+  deleted: undefined,
+  new: undefined,
+};
+
 const nonDocChanged = {
   deletions: 1,
   additions: 1,
@@ -138,6 +149,7 @@ const docOnlyDiffs = [
   githubIssueChanged,
   githubPrChanged,
   wikiChanged,
+  rootDocChanged,
 ];
 
 const noPriorReviews = [];
@@ -148,6 +160,16 @@ const priorReviews = [
     state: "APPROVED",
   },
 ];
+
+function ghContext(): Context {
+  const ctx = new Context();
+  ctx.payload = {
+    pull_request: {
+      number: 101,
+    },
+  };
+  return ctx;
+}
 
 test("skips approval if already approved by bot", async () => {
   nock("https://api.github.com")
@@ -169,20 +191,31 @@ test("skips approval if already approved by bot", async () => {
   );
 });
 
-test("only approves when a diff changes /docs directory files and/or READMEs", async () => {
-  nock("https://api.github.com")
-    .get("/repos/hmarr/test/pulls/101")
-    .reply(200, docOnlyDiffs);
+test("onlyModifiesDocs true when diff changes docs", async () => {
+  expect(onlyModifiesDocs(docOnlyDiffs as parse.File[])).toBe(true);
+});
 
-  // mock the request for prior approved reviews
-  nock("https://api.github.com")
-    .get("/repos/hmarr/test/pulls/101/reviews")
-    .reply(200, noPriorReviews);
+test("onlyModifiesDocs false when PR includes non-doc changed", async () => {
+  expect(
+    onlyModifiesDocs([...docOnlyDiffs, nonDocChanged] as parse.File[])
+  ).toBe(false);
+});
 
-  await approve("gh-tok", ghContext(), 0);
+test("onlyModifiesDocs false when PR includes non-doc renamed", async () => {
+  expect(
+    onlyModifiesDocs([...docOnlyDiffs, nonDocRenamed] as parse.File[])
+  ).toBe(false);
+});
 
-  expect(core.info).not.toHaveBeenCalledWith(
-    expect.stringContaining("Approved pull request #101")
+test("onlyModifiesDocs false when PR includes non-doc deleted", async () => {
+  expect(
+    onlyModifiesDocs([...docOnlyDiffs, nonDocDeleted] as parse.File[])
+  ).toBe(false);
+});
+
+test("onlyModifiesDocs false when PR includes non-doc added", async () => {
+  expect(onlyModifiesDocs([...docOnlyDiffs, nonDocAdded] as parse.File[])).toBe(
+    false
   );
 });
 
@@ -190,74 +223,6 @@ test("does not approve when PR has no content", async () => {
   nock("https://api.github.com")
     .get("/repos/hmarr/test/pulls/101")
     .reply(200, []);
-
-  // mock the request for prior approved reviews
-  nock("https://api.github.com")
-    .get("/repos/hmarr/test/pulls/101/reviews")
-    .reply(200, noPriorReviews);
-
-  await approve("gh-tok", ghContext(), 0);
-
-  expect(core.info).not.toHaveBeenCalledWith(
-    expect.stringContaining("Approved pull request #101")
-  );
-});
-
-test("does not approve when PR includes non-doc changed", async () => {
-  nock("https://api.github.com")
-    .get("/repos/hmarr/test/pulls/101")
-    .reply(200, [...docOnlyDiffs, nonDocChanged]);
-
-  // mock the request for prior approved reviews
-  nock("https://api.github.com")
-    .get("/repos/hmarr/test/pulls/101/reviews")
-    .reply(200, noPriorReviews);
-
-  await approve("gh-tok", ghContext(), 0);
-
-  expect(core.info).not.toHaveBeenCalledWith(
-    expect.stringContaining("Approved pull request #101")
-  );
-});
-
-test("does not approve when PR includes non-doc renamed", async () => {
-  nock("https://api.github.com")
-    .get("/repos/hmarr/test/pulls/101")
-    .reply(200, [...docOnlyDiffs, nonDocRenamed]);
-
-  // mock the request for prior approved reviews
-  nock("https://api.github.com")
-    .get("/repos/hmarr/test/pulls/101/reviews")
-    .reply(200, noPriorReviews);
-
-  await approve("gh-tok", ghContext(), 0);
-
-  expect(core.info).not.toHaveBeenCalledWith(
-    expect.stringContaining("Approved pull request #101")
-  );
-});
-
-test("does not approve when PR includes non-doc deleted", async () => {
-  nock("https://api.github.com")
-    .get("/repos/hmarr/test/pulls/101")
-    .reply(200, [...docOnlyDiffs, nonDocDeleted]);
-
-  // mock the request for prior approved reviews
-  nock("https://api.github.com")
-    .get("/repos/hmarr/test/pulls/101/reviews")
-    .reply(200, noPriorReviews);
-
-  await approve("gh-tok", ghContext(), 0);
-
-  expect(core.info).not.toHaveBeenCalledWith(
-    expect.stringContaining("Approved pull request #101")
-  );
-});
-
-test("does not approve when PR includes non-doc added", async () => {
-  nock("https://api.github.com")
-    .get("/repos/hmarr/test/pulls/101")
-    .reply(200, [...docOnlyDiffs, nonDocAdded]);
 
   // mock the request for prior approved reviews
   nock("https://api.github.com")
@@ -410,13 +375,3 @@ test("when the token doesn't have access to the repository", async () => {
     expect.stringContaining("doesn't have access")
   );
 });
-
-function ghContext(): Context {
-  const ctx = new Context();
-  ctx.payload = {
-    pull_request: {
-      number: 101,
-    },
-  };
-  return ctx;
-}
