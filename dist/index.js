@@ -6036,7 +6036,7 @@ function onlyModifiesDocs(files) {
         // added only has to
         ...addedFiles.map((f) => f.to),
     ];
-    core.info(`All ${changedFiles.length} changed filepaths:`);
+    core.info(`All ${allFilePaths.length} considered filepaths:`);
     core.info(JSON.stringify(allFilePaths));
     // don't think undefined should ever occur but will watch for it in practice...
     const stringFilePaths = allFilePaths.filter((path) => path !== undefined);
