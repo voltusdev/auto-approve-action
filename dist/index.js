@@ -5928,6 +5928,7 @@ function approve(token, context, sleepBeforeApproveSeconds, prNumber) {
                     event: "APPROVE",
                 });
                 core.info(`Approved pull request #${prNumber}`);
+                core.setOutput("approved", "true");
             }
             else {
                 core.info(`PR modifies more than just docs. Please get a human to look at it and approve it.`);
@@ -6036,10 +6037,10 @@ function onlyModifiesDocs(files) {
         // added only has to
         ...addedFiles.map((f) => f.to),
     ];
-    core.info(`All ${allFilePaths.length} considered filepaths:`);
-    core.info(JSON.stringify(allFilePaths));
     // don't think undefined should ever occur but will watch for it in practice...
     const stringFilePaths = allFilePaths.filter((path) => path !== undefined);
+    core.info(`All ${stringFilePaths.length} considered filepaths:`);
+    core.info(JSON.stringify(stringFilePaths));
     return stringFilePaths.every((path) => path.includes("/docs/") ||
         path.startsWith("docs/") ||
         path.includes("README.md") ||

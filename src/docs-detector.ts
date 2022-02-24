@@ -37,13 +37,14 @@ export default function onlyModifiesDocs(files: parse.File[]): boolean {
     ...addedFiles.map((f) => f.to),
   ];
 
-  core.info(`All ${allFilePaths.length} considered filepaths:`);
-  core.info(JSON.stringify(allFilePaths));
-
   // don't think undefined should ever occur but will watch for it in practice...
   const stringFilePaths = allFilePaths.filter(
     (path) => path !== undefined
   ) as string[];
+
+  core.info(`All ${stringFilePaths.length} considered filepaths:`);
+  core.info(JSON.stringify(stringFilePaths));
+
   return stringFilePaths.every(
     (path) =>
       path.includes("/docs/") ||

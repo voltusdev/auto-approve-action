@@ -65,6 +65,7 @@ export async function approve(
         event: "APPROVE",
       });
       core.info(`Approved pull request #${prNumber}`);
+      core.setOutput("approved", "true");
     } else {
       core.info(
         `PR modifies more than just docs. Please get a human to look at it and approve it.`
