@@ -53,6 +53,7 @@ export async function approve(
 
     if (priorAutoApprovedReviews.length > 0) {
       core.info("PR already auto-approved.");
+      core.setOutput("approved", "true");
     } else if (diff.length > 0 && onlyModifiesDocs(files)) {
       core.info(
         `PR only modifies docs - sleeping ${sleepBeforeApproveSeconds}s and then approving this PR.`
