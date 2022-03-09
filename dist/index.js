@@ -5915,11 +5915,13 @@ function approve(token, context, sleepBeforeApproveSeconds, prNumber) {
                 return (((_a = review.user) === null || _a === void 0 ? void 0 : _a.login) === "github-actions[bot]" &&
                     review.state === "APPROVED");
             });
-            if (priorAutoApprovedReviews.length > 0) {
+            const alreadyAutoApproved = priorAutoApprovedReviews.length > 0;
+            const shouldBeAutoApproved = diff.length > 0 && docs_detector_1.default(files);
+            if (alreadyAutoApproved && shouldBeAutoApproved) {
                 core.info("PR already auto-approved.");
                 core.setOutput("approved", "true");
             }
-            else if (diff.length > 0 && docs_detector_1.default(files)) {
+            else if (shouldBeAutoApproved) {
                 core.info(`PR only modifies docs - sleeping ${sleepBeforeApproveSeconds}s and then approving this PR.`);
                 yield new Promise((r) => setTimeout(r, sleepBeforeApproveSeconds * 1000));
                 yield client.pulls.createReview({

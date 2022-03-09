@@ -51,10 +51,13 @@ export async function approve(
       );
     });
 
-    if (priorAutoApprovedReviews.length > 0) {
+    const alreadyAutoApproved = priorAutoApprovedReviews.length > 0;
+    const shouldBeAutoApproved = diff.length > 0 && onlyModifiesDocs(files);
+
+    if (alreadyAutoApproved && shouldBeAutoApproved) {
       core.info("PR already auto-approved.");
       core.setOutput("approved", "true");
-    } else if (diff.length > 0 && onlyModifiesDocs(files)) {
+    } else if (shouldBeAutoApproved) {
       core.info(
         `PR only modifies docs - sleeping ${sleepBeforeApproveSeconds}s and then approving this PR.`
       );
